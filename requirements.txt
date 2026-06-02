@@ -1,0 +1,13 @@
+# Core dependencies for the `src` package (Python 3.8, CUDA 11.8 tested).
+torch>=2.0
+torchvision>=0.15
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+faiss-gpu>=1.7.2        # faiss-cpu also works (the code falls back to CPU)
+timm>=0.9
+Pillow>=9.5
+opencv-python>=4.6      # or opencv-python-headless on machines without GUI libs
+PyYAML>=6.0
+adeval>=1.1
+# DINOv2 ViT-S/14 weights are fetched at runtime via torch.hub (facebookresearch/dinov2).

@@ -1,0 +1,17 @@
+# Ablation: Req-C only (no novelty filter, RA-TTE scoring)
+# Validates Reference-Anchored Scoring contribution independently of Req-A.
+
+runtime:
+  device: cuda:0
+
+dataset:
+  name: MVTecAD
+  shot: 1
+
+pipeline:
+  batch_size: 8
+  budget: 1.5
+  tau_ratio_low: 5.0
+  tau_ratio_high: 50.0
+  novelty_ratio: 0.0              # Req-A OFF (no novelty filter)
+  scoring_mode: reference_anchored  # Req-C ON

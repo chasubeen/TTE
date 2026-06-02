@@ -1,0 +1,133 @@
+# src canonical pipeline config.
+# This YAML is the source of truth for runtime/model/pipeline configuration.
+# Python modules should load configuration through src.configs.
+#
+# NOTE (ver 14): The CURRENT research method (docs/REPORT_20260526, 연구미팅
+# deck 0529, KIIE poster) = reservoir random sampling + frozen Memory-independent
+# gate + cross-batch context-signal score calibration `s·(1−0.5·g)`. It runs
+# end-to-end through the canonical pipeline with:
+#       memory_policy: reservoir   +   scoring_mode: context_discount
+# (or `python main.py --memory-policy reservoir --scoring-mode context_discount`).
+# Source is layered by function: selector/ (MLP gate), memory/ (bank + expander),
+# scorer/ (distance + context). The defaults below keep the legacy append +
+# baseline path; set the two keys above to run the current method.
+
+runtime:
+  device: cuda:0
+
+model:
+  backbone: dinov2_vit_small_14
+  img_size: 448
+  resize_mask: 256
+  rotation_angles: [0, 45, 90, 135, 180, 225, 270, 315]
+
+evaluation:
+  metrics: [I-AUROC, I-AP, I-F1_max, P-AUROC, P-AP, P-F1_max, AUPRO]
+
+categories:
+  MVTecAD:
+    - bottle
+    - cable
+    - capsule
+    - carpet
+    - grid
+    - hazelnut
+    - leather
+    - metal_nut
+    - pill
+    - screw
+    - tile
+    - toothbrush
+    - transistor
+    - wood
+    - zipper
+  VisA_pytorch:
+    - candle
+    - capsules
+    - cashew
+    - chewinggum
+    - fryum
+    - macaroni1
+    - macaroni2
+    - pcb1
+    - pcb2
+    - pcb3
+    - pcb4
+    - pipe_fryum
+
+dataset:
+  name: MVTecAD              # MVTecAD | VisA_pytorch
+  shot: 1                    # k-shot setting
+  # data_path: src13/data    # default: <project>/data
+
+memory_bank:
+  faiss_on_gpu: true
+  faiss_num_workers: 4
+  n_neighbors: 1
+  density_k: 5
+  metric: l2
+
+mlp:
+  bottleneck_ratio: 4
+  n_epochs: 200
+  lr: 0.001
+
+scoring_policy:
+  # Legacy ablation constants kept only for archived RC-DCEC era diagnostics.
+  gate_q_low: 30.0
+  gate_q_high: 80.0
+  residual_gamma: 0.5
+
+pipeline:
+  # ---- Batching / budget ----
+  batch_size: 8              # batch-by-batch online window
+  budget: 1.5                # max memory size = M0 * budget
+
+  # ---- Memory-management policy (Cycle 1) ----
+  # append    : legacy gap-priority append-only (default; backward compatible).
+  # reservoir : current method — M0 frozen + reservoir-sampled buffer (Algorithm R).
+  memory_policy: append
+
+  # ---- Req-B: MLP normality threshold (× train_error_mean) ----
+  # Single thresholding hyperparameter. patches with e(p) < tau_low are
+  # absorbed (Zone 1, "confident normal"); the rest are rejected.
+  tau_ratio_low: 5.0
+
+  # ---- Req-A: insertion ordering + optional hard novelty threshold ----
+  insertion_mode: gap_priority  # gap_priority | stream_order | random
+  insertion_seed: 0             # used only when insertion_mode=random
+  novelty_ratio: 0.0            # 0 = off; gap-priority sort handles diversity
+
+  # ---- Req-C: scoring mode ----
+  # baseline: anomaly_score(q) = d(q, M).  M = M_0 + accepted Zone-1 patches.
+  #
+  # Era-1 note (SUPERSEDED): earlier the claim was that *no* score correction is
+  # needed because memory-internal correction (M_res, asymmetric ceiling, the 13
+  # memory-geometry/recon signals) was all net-negative (A6 — Credibility
+  # Estimability).  That closure holds only for MEMORY-INTERNAL signals.
+  #
+  # Current method (REPORT_20260526 §2 Cycle 3): a MEMORY-INDEPENDENT exogenous
+  # context signal g(q) = cosine to other-image foreground patches (top-k=5 mean)
+  # IS used as a calibration: s'(q) = d(q,M)·(1 − 0.5·g(q))  (Ranking-Preserving
+  # Adaptation).  It bypasses A6 robustly on VisA (+0.55pp) but is a post-hoc
+  # band-aid (does not prevent Density Imbalance).  Implemented in
+  # scorer/context.py (compute_context_g + score_context_discount), wired in
+  # pipeline/runner.py when scoring_mode=context_discount.
+  #
+  # Modes:
+  #   baseline         : anomaly_score(q) = d(q, M)  (legacy default).
+  #   context_discount : CURRENT method — s'(q) = d(q,M)·(1 − λ·g(q)),
+  #                      g(q) = compute_context_g (S4 cross-batch / S3 intra).
+  #                      Use together with memory_policy: reservoir.
+  scoring_mode: baseline
+
+  # ---- Ranking-Preserving Adaptation (context-signal calibration) ----
+  # Only used when scoring_mode: context_discount.  Canonical = S4, λ=0.5, k=5.
+  context_signal: S4         # S4 (cross-batch cosine) | S3 (intra-image rank)
+  context_lambda: 0.5
+  context_k: 5
+
+  # === To run the CURRENT method end-to-end, set:
+  #       memory_policy: reservoir
+  #       scoring_mode:  context_discount
+  #     (context_signal/lambda/k default to the canonical S4/0.5/5).

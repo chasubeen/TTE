@@ -1,0 +1,10 @@
+# Tau sensitivity ablation config.
+# Used by analysis/tau_sensitivity.py as the canonical base. The script sweeps
+# pipeline.tau_ratio_low over {2.0, 3.0, 5.0, 10.0}.
+
+pipeline:
+  scoring_mode: rc_dcec
+  rc_gain_gamma: 2.0
+  drop_cap_ratio: 1.0
+  novelty_ratio: 0.0
+  insertion_mode: gap_priority

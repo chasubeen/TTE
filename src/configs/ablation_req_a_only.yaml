@@ -1,0 +1,17 @@
+# Ablation: Req-A only (novelty filter ON, legacy C3 scoring)
+# Validates Selective Update contribution independently of Req-C.
+
+runtime:
+  device: cuda:0
+
+dataset:
+  name: MVTecAD
+  shot: 1
+
+pipeline:
+  batch_size: 8
+  budget: 1.5
+  tau_ratio_low: 5.0
+  tau_ratio_high: 50.0
+  novelty_ratio: 1.0          # Req-A ON
+  scoring_mode: gated_dual    # Req-C OFF (legacy C3)

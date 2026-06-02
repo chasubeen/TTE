@@ -1,0 +1,17 @@
+# Ablation: Original C3 (no novelty filter, legacy gated_dual scoring)
+# Reproduces the pre-redesign behavior for comparison baseline.
+
+runtime:
+  device: cuda:0
+
+dataset:
+  name: MVTecAD
+  shot: 1
+
+pipeline:
+  batch_size: 8
+  budget: 1.5
+  tau_ratio_low: 5.0
+  tau_ratio_high: 50.0
+  novelty_ratio: 0.0        # Req-A OFF
+  scoring_mode: gated_dual  # Req-C OFF (original C3)

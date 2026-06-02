@@ -1,0 +1,37 @@
+# ===== Datasets (license-restricted; download separately, see README) =====
+/data/
+/src/data/
+
+# ===== Model weights & caches (DINOv2 fetched at runtime via torch.hub) =====
+*.pth
+*.pt
+*.ckpt
+*.faiss
+backbones/weights/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.python-version
+
+# ===== Run outputs / logs (regenerable) =====
+logs/
+outputs/
+runs/
+results/
+*.log
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
